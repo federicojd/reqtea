@@ -21,9 +21,11 @@ type Model struct {
 	method  int
 	url     textinput.Model
 
+	width  int
+	height int
+
 	response         *Response
 	responseViewport viewport.Model
-	ready            bool
 }
 
 type responseMsg struct {
@@ -45,7 +47,7 @@ func New() Model {
 	url.CharLimit = 300
 	url.Width = 80
 
-	vp := viewport.New(76, 45)
+	vp := viewport.New(1, 1)
 
 	return Model{
 		methods:          []string{"GET", "POST", "PUT", "PATCH", "DELETE"},
@@ -82,12 +84,18 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			}
 		}
 	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+
 		leftWidth := msg.Width / 3
 		rightWidth := msg.Width - leftWidth - 6
+
+		m.url.Width = leftWidth - 6
 
 		m.responseViewport.Width = rightWidth - 4
 		m.responseViewport.Height = msg.Height - 8
 
+		return m, nil
 	case responseMsg:
 		if msg.Err != nil {
 			m.response = &Response{
@@ -114,6 +122,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
+	// if m.width == 0 || m.height == 0 {
+	// 	return "loading..."
+	// }
+
 	requestPanel := fmt.Sprintf(
 		`%s
 
@@ -142,12 +154,17 @@ Esc back
 		)
 	}
 
+	leftWidth := m.width / 3
+	rightWidth := m.width - leftWidth - 6
+
 	left := panelStyle.
-		Width(50).
+		Width(leftWidth).
+		Height(m.height - 2).
 		Render(requestPanel)
 
 	right := panelStyle.
-		Width(80).
+		Width(rightWidth).
+		Height(m.height - 2).
 		Render(responsePanel)
 
 	return lipgloss.JoinHorizontal(
